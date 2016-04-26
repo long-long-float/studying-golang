@@ -4,54 +4,53 @@ import (
 	"fmt"
 )
 
-type List interface {
-	Car() int
-	Cdr() List
-}
-
-type Cons struct {
+type List struct {
 	car int
-	cdr List
+	cdr *List
 }
 
-func Car(list Cons) int {
-	return list.car
+func cons(car int, cdr *List) *List {
+	return &List{car, cdr}
 }
 
-func Cdr(list Cons) List {
-	return list.cdr
+func null() *List {
+	return &List{}
 }
 
-type Null struct {
+func (list *List) isNull() bool {
+	return list.cdr == nil
 }
 
-func Car(list Null) int {
-	return 0
+func (list *List) toArray() []int {
+	values := []int{}
+	current := list
+	for !current.isNull() {
+		values = append(values, current.car)
+		current = current.cdr
+	}
+	return values
 }
 
-func Cdr(list Null) List {
-	return nil
+func list(nums ...int) *List {
+	head := null()
+	current := head
+	for _, n := range nums {
+		current.car = n
+		current.cdr = &List{}
+		current = current.cdr
+	}
+	return head
 }
 
-func makeList(nums ...int) List {
-	if len(nums) == 0 {
-		return &Null{}
+func (list *List) collect(f func(int) int) *List {
+	if list.isNull() {
+		return null()
 	} else {
-		head := &Cons{}
-		current := head
-		for i, n := range nums {
-			current.car = n
-			if i < len(nums)-1 {
-				current.cdr = &Cons{}
-			} else {
-				current.cdr = &Null{}
-			}
-		}
-		return head
+		return cons(f(list.car), list.cdr.collect(f))
 	}
 }
 
 func main() {
-	list := makeList(1, 2, 3)
-	fmt.Println(list)
+	list := list(1, 2, 3)
+	fmt.Println(list.collect(func(i int) int { return i * i }).toArray())
 }
