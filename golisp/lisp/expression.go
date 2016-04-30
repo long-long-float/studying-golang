@@ -143,3 +143,28 @@ func (self *T) Equals(expr Expression) bool {
 	_, ok := expr.(*T)
 	return ok
 }
+
+type Lambda struct {
+	parent *Environment
+
+	args *Cons
+	body *Cons
+
+	self *Cons
+}
+
+func (self *Lambda) String() string {
+	return self.self.String()
+}
+
+func (self *Lambda) Pretty() string {
+	return self.String()
+}
+
+func (self *Lambda) Equals(expr Expression) bool {
+	// TODO: これだと引数の名前まで一致していないと等しくならないので修正する
+	if lambda, ok := expr.(*Lambda); ok {
+		return self.self.Equals(lambda.self)
+	}
+	return false
+}

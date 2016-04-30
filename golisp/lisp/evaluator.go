@@ -6,14 +6,15 @@ import (
 
 func Evaluate(exprs []Expression) error {
 	for _, expr := range exprs {
-		if _, err := evalExpression(expr); err != nil {
+		rootEnv := &Environment{nil, VariableTable{}}
+		if _, err := evalExpression(expr, rootEnv); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func evalExpression(iexpr Expression) (Expression, error) {
+func evalExpression(iexpr Expression, current *Environment) (Expression, error) {
 	switch expr := iexpr.(type) {
 	case *Cons:
 		tail := expr.cdr
@@ -23,7 +24,7 @@ func evalExpression(iexpr Expression) (Expression, error) {
 			// functions
 			case "print":
 				tail.Each(func(arg Expression) Expression {
-					v, _ := evalExpression(arg)
+					v, _ := evalExpression(arg, current)
 					fmt.Println(v.Pretty())
 					return nil
 				})
@@ -31,7 +32,7 @@ func evalExpression(iexpr Expression) (Expression, error) {
 				return &Cons{}, nil
 
 			case "atom":
-				v, _ := evalExpression(tail.car)
+				v, _ := evalExpression(tail.car, current)
 				if isAtom(v) {
 					return True, nil
 				} else {
@@ -46,7 +47,7 @@ func evalExpression(iexpr Expression) (Expression, error) {
 				}
 
 			case "car":
-				arg, _ := evalExpression(tail.car)
+				arg, _ := evalExpression(tail.car, current)
 				switch arg := arg.(type) {
 				case *Cons:
 					return arg.car, nil
@@ -55,7 +56,7 @@ func evalExpression(iexpr Expression) (Expression, error) {
 				}
 
 			case "cdr":
-				arg, _ := evalExpression(tail.car)
+				arg, _ := evalExpression(tail.car, current)
 				switch arg := arg.(type) {
 				case *Cons:
 					return arg.cdr, nil
@@ -64,7 +65,7 @@ func evalExpression(iexpr Expression) (Expression, error) {
 				}
 
 			case "cons":
-				return evalExpression(tail)
+				return evalExpression(tail, current)
 
 			// special forms
 			case "cond":
@@ -72,7 +73,7 @@ func evalExpression(iexpr Expression) (Expression, error) {
 					switch pair := cond.(type) {
 					case *Cons:
 						f, s := pair.car, pair.cdr.car
-						v, _ := evalExpression(f)
+						v, _ := evalExpression(f, current)
 						if v == True {
 							return s
 						}
@@ -82,18 +83,69 @@ func evalExpression(iexpr Expression) (Expression, error) {
 				})
 
 				if result != nil {
-					return evalExpression(result)
+					return evalExpression(result, current)
 				} else {
 					return &Cons{}, nil
 				}
 			case "quote":
 				return expr, nil
+			case "lambda":
+				args, ok := tail.car.(*Cons)
+				if !ok {
+					return nil, fmt.Errorf("arguments of lambda must be Cons")
+				}
+				return &Lambda{current, args, tail.cdr, expr}, nil
 			}
 
-		// list
 		default:
-			return expr, nil
+			car, _ := evalExpression(expr.car, current)
+			switch head := car.(type) {
+			case *Lambda:
+				lambda := head
+				vtable := VariableTable{}
+				args := tail
+
+				// TODO: lambda.argsとargsの長さの比較をする
+
+				argsCurrent := args
+				lambda.args.Each(func(expr Expression) Expression {
+					// TODO: Identifierではなかった時のエラー処理
+					id, ok := expr.(*Identifier)
+					if !ok {
+						return nil
+					}
+
+					vtable[string(id.name)], _ = evalExpression(argsCurrent.car, current)
+					argsCurrent = argsCurrent.cdr
+
+					return nil
+				})
+
+				env := &Environment{current, vtable}
+
+				env.parent = current
+
+				var retVal Expression = &Cons{}
+				lambda.body.Each(func(expr Expression) Expression {
+					// TODO: エラー処理
+					retVal, _ = evalExpression(expr, env)
+					return nil
+				})
+
+				return retVal, nil
+
+			default:
+				return nil, fmt.Errorf("cannot apply %s", head.Pretty())
+			}
+
 		}
+
+	case *Identifier:
+		val := current.find(string(expr.name))
+		if val == nil {
+			return nil, fmt.Errorf("undefined variable %s", string(expr.name))
+		}
+		return val, nil
 	default:
 		return expr, nil
 	}
