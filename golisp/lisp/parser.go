@@ -58,10 +58,17 @@ func Parse(src []rune) ([]Expression, error) {
 	exprs := []Expression{}
 	state := &state{src, 0}
 
-	expr, err := parseExpression(state)
-	exprs = append(exprs, expr)
+	for !state.isEOF() {
+		expr, err := parseExpression(state)
+		if err != nil {
+			return nil, err
+		}
+		exprs = append(exprs, expr)
 
-	return exprs, err
+		state.skipSpaces()
+	}
+
+	return exprs, nil
 }
 
 func parseExpression(state *state) (Expression, error) {
@@ -77,7 +84,7 @@ func parseExpression(state *state) (Expression, error) {
 		return parseList(state)
 	}
 
-	return nil, fmt.Errorf("unexpected %s", state.currentAsString())
+	return nil, fmt.Errorf("unexpected %s at %d", state.currentAsString(), state.position)
 }
 
 func parseList(state *state) (Expression, error) {
