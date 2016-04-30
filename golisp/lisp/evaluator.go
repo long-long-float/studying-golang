@@ -31,12 +31,33 @@ func evalExpression(iexpr Expression) (Expression, error) {
 				return &Cons{}, nil
 
 			case "atom":
-				v, _ := evalExpression(tail)
+				v, _ := evalExpression(tail.car)
 				if isAtom(v) {
 					return True, nil
 				} else {
 					return &Cons{}, nil
 				}
+
+			case "car":
+				arg, _ := evalExpression(tail.car)
+				switch arg := arg.(type) {
+				case *Cons:
+					return arg.car, nil
+				default:
+					return nil, fmt.Errorf("cannot fetch car from %s", arg.Pretty())
+				}
+
+			case "cdr":
+				arg, _ := evalExpression(tail.car)
+				switch arg := arg.(type) {
+				case *Cons:
+					return arg.cdr, nil
+				default:
+					return nil, fmt.Errorf("cannot fetch cdr from %s", arg.Pretty())
+				}
+
+			case "cons":
+				return evalExpression(tail)
 
 			// special forms
 			case "cond":
@@ -58,6 +79,8 @@ func evalExpression(iexpr Expression) (Expression, error) {
 				} else {
 					return &Cons{}, nil
 				}
+			case "quote":
+				return expr, nil
 			}
 
 		// list
@@ -73,8 +96,8 @@ func evalExpression(iexpr Expression) (Expression, error) {
 func isAtom(expr Expression) bool {
 	switch expr.(type) {
 	case *Cons:
-		return true
-	default:
 		return false
+	default:
+		return true
 	}
 }
