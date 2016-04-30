@@ -5,8 +5,8 @@ import (
 )
 
 func Evaluate(exprs []Expression) error {
+	rootEnv := &Environment{nil, VariableTable{}}
 	for _, expr := range exprs {
-		rootEnv := &Environment{nil, VariableTable{}}
 		if _, err := evalExpression(expr, rootEnv); err != nil {
 			return err
 		}
@@ -17,6 +17,10 @@ func Evaluate(exprs []Expression) error {
 func evalExpression(iexpr Expression, current *Environment) (Expression, error) {
 	switch expr := iexpr.(type) {
 	case *Cons:
+		if expr.IsNull() {
+			return expr, nil
+		}
+
 		tail := expr.cdr
 		switch head := expr.car.(type) {
 		case *Identifier:
@@ -40,7 +44,15 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 				}
 
 			case "eq":
-				if tail.car.Equals(tail.cdr.car) {
+				f, err := evalExpression(tail.car, current)
+				if err != nil {
+					return nil, err
+				}
+				s, err := evalExpression(tail.cdr.car, current)
+				if err != nil {
+					return nil, err
+				}
+				if f.Equals(s) {
 					return True, nil
 				} else {
 					return &Cons{}, nil
@@ -95,49 +107,23 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 					return nil, fmt.Errorf("arguments of lambda must be Cons")
 				}
 				return &Lambda{current, args, tail.cdr, expr}, nil
+			case "define":
+				id, ok := tail.car.(*Identifier)
+				if !ok {
+					return nil, fmt.Errorf("name of define must be Identifier")
+				}
+				val := tail.cdr.car
+
+				current.vtable[string(id.name)], _ = evalExpression(val, current)
+
+				return val, nil
+
+			default:
+				return applyLambda(expr, current)
 			}
 
 		default:
-			car, _ := evalExpression(expr.car, current)
-			switch head := car.(type) {
-			case *Lambda:
-				lambda := head
-				vtable := VariableTable{}
-				args := tail
-
-				// TODO: lambda.argsとargsの長さの比較をする
-
-				argsCurrent := args
-				lambda.args.Each(func(expr Expression) Expression {
-					// TODO: Identifierではなかった時のエラー処理
-					id, ok := expr.(*Identifier)
-					if !ok {
-						return nil
-					}
-
-					vtable[string(id.name)], _ = evalExpression(argsCurrent.car, current)
-					argsCurrent = argsCurrent.cdr
-
-					return nil
-				})
-
-				env := &Environment{current, vtable}
-
-				env.parent = current
-
-				var retVal Expression = &Cons{}
-				lambda.body.Each(func(expr Expression) Expression {
-					// TODO: エラー処理
-					retVal, _ = evalExpression(expr, env)
-					return nil
-				})
-
-				return retVal, nil
-
-			default:
-				return nil, fmt.Errorf("cannot apply %s", head.Pretty())
-			}
-
+			return applyLambda(expr, current)
 		}
 
 	case *Identifier:
@@ -158,5 +144,47 @@ func isAtom(expr Expression) bool {
 		return false
 	default:
 		return true
+	}
+}
+
+func applyLambda(expr *Cons, current *Environment) (Expression, error) {
+	car, _ := evalExpression(expr.car, current)
+	switch head := car.(type) {
+	case *Lambda:
+		lambda := head
+		vtable := VariableTable{}
+		args := expr.cdr
+
+		// TODO: lambda.argsとargsの長さの比較をする
+
+		argsCurrent := args
+		lambda.args.Each(func(expr Expression) Expression {
+			// TODO: Identifierではなかった時のエラー処理
+			id, ok := expr.(*Identifier)
+			if !ok {
+				return nil
+			}
+
+			vtable[string(id.name)], _ = evalExpression(argsCurrent.car, current)
+			argsCurrent = argsCurrent.cdr
+
+			return nil
+		})
+
+		env := &Environment{current, vtable}
+
+		env.parent = current
+
+		var retVal Expression = &Cons{}
+		lambda.body.Each(func(expr Expression) Expression {
+			// TODO: エラー処理
+			retVal, _ = evalExpression(expr, env)
+			return nil
+		})
+
+		return retVal, nil
+
+	default:
+		return nil, fmt.Errorf("cannot apply %s", head.Pretty())
 	}
 }

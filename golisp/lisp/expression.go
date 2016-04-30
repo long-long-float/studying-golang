@@ -158,7 +158,7 @@ func (self *Lambda) String() string {
 }
 
 func (self *Lambda) Pretty() string {
-	return self.String()
+	return "<lambda> " + self.String()
 }
 
 func (self *Lambda) Equals(expr Expression) bool {
