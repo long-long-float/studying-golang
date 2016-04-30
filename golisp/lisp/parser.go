@@ -15,9 +15,17 @@ func (self *state) current() rune {
 	return self.src[self.position]
 }
 
+func (self *state) currentAsString() string {
+	if self.isEOF() {
+		return "EOF"
+	} else {
+		return string(self.current())
+	}
+}
+
 func (self *state) expect(char rune) error {
 	if self.current() != char {
-		return fmt.Errorf("unexpected %s, expect %s", string(self.current()), string(char))
+		return fmt.Errorf("unexpected %s, expect %s", self.currentAsString(), string(char))
 	} else {
 		return nil
 	}
@@ -25,7 +33,9 @@ func (self *state) expect(char rune) error {
 
 func (self *state) consume() rune {
 	cur := self.src[self.position]
-	self.position++
+	if !self.isEOF() {
+		self.position++
+	}
 	return cur
 }
 
@@ -35,58 +45,110 @@ func (self *state) currentIsSpace() bool {
 }
 
 func (self *state) skipSpaces() {
-	for self.currentIsSpace() {
-		self.position++
+	for self.currentIsSpace() && !self.isEOF() {
+		self.consume()
 	}
+}
+
+func (self *state) isEOF() bool {
+	return self.position >= len(self.src)-1
 }
 
 func Parse(src []rune) ([]Expression, error) {
 	exprs := []Expression{}
 	state := &state{src, 0}
 
-	expr, _ := parseList(state)
+	expr, err := parseExpression(state)
 	exprs = append(exprs, expr)
 
-	return exprs, nil
+	return exprs, err
+}
+
+func parseExpression(state *state) (Expression, error) {
+	cur := state.current()
+	switch {
+	case ('a' <= cur && cur <= 'z') || ('A' <= cur && cur <= 'Z'):
+		return parseIdentifier(state)
+	case (cur == '-') || ('0' <= cur && cur <= '9'):
+		return parseInteger(state)
+	case cur == '"':
+		return parseString(state)
+	case cur == '(':
+		return parseList(state)
+	}
+
+	return nil, fmt.Errorf("unexpected %s", state.currentAsString())
 }
 
 func parseList(state *state) (Expression, error) {
 	if err := state.expect('('); err != nil {
 		return nil, err
 	}
-
 	state.consume()
 
 	state.skipSpaces()
 
-	id, _ := parseIdentifier(state)
-	state.skipSpaces()
-	arg, _ := parseInteger(state)
+	head := &Cons{}
+	current := head
+	for state.current() != ')' && !state.isEOF() {
+		current.car, _ = parseExpression(state)
+		current.cdr = &Cons{}
+
+		current = current.cdr
+
+		state.skipSpaces()
+	}
 
 	if err := state.expect(')'); err != nil {
 		return nil, err
 	}
+	state.consume()
 
-	return &Cons{id, &Cons{arg, &Cons{nil, nil}}}, nil
+	return head, nil
 }
 
 func parseIdentifier(state *state) (Expression, error) {
-	name := []rune{}
 	reg := regexp.MustCompile(`[a-zA-Z]`)
-	for reg.MatchString(string(state.current())) {
-		name = append(name, state.consume())
-	}
-
-	return &Identifier{name}, nil
+	return &Identifier{parseWhile(state, reg)}, nil
 }
 
 func parseInteger(state *state) (Expression, error) {
-	num := []rune{}
 	reg := regexp.MustCompile(`[0-9]`)
-	for reg.MatchString(string(state.current())) {
-		num = append(num, state.consume())
+	value, _ := strconv.Atoi(string(parseWhile(state, reg)))
+	return &Integer{value}, nil
+}
+
+func parseString(state *state) (Expression, error) {
+	if err := state.expect('"'); err != nil {
+		return nil, err
+	}
+	state.consume()
+
+	reg := regexp.MustCompile(`[^"]`)
+	value := parseWhile(state, reg)
+
+	if err := state.expect('"'); err != nil {
+		return nil, err
+	}
+	state.consume()
+
+	head := &Cons{}
+	current := head
+	for _, cur := range value {
+		current.car = &Char{rune(cur)}
+		current.cdr = &Cons{}
+
+		current = current.cdr
 	}
 
-	value, _ := strconv.Atoi(string(num))
-	return &Integer{value}, nil
+	return head, nil
+}
+
+func parseWhile(state *state, reg *regexp.Regexp) []rune {
+	value := []rune{}
+	for reg.MatchString(string(state.current())) {
+		value = append(value, state.consume())
+	}
+
+	return value
 }

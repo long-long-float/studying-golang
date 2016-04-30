@@ -36,3 +36,11 @@ type Integer struct {
 func (self *Integer) String() string {
 	return fmt.Sprint(self.value)
 }
+
+type Char struct {
+	value rune
+}
+
+func (self *Char) String() string {
+	return string(self.value)
+}

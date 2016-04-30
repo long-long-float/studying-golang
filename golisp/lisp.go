@@ -20,7 +20,10 @@ func main() {
 
 	src := []rune(string(dat))
 
-	exprs, _ := lisp.Parse(src)
+	exprs, err := lisp.Parse(src)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	fmt.Println(exprs)
 }
