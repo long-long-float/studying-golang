@@ -9,6 +9,7 @@ var True = &T{}
 type Expression interface {
 	String() string
 	Pretty() string
+	Equals(expr Expression) bool
 }
 
 type Cons struct {
@@ -59,6 +60,19 @@ func (self *Cons) Pretty() string {
 	}
 }
 
+func (self *Cons) Equals(expr Expression) bool {
+	if cons, ok := expr.(*Cons); ok {
+		if self.IsNull() && self.IsNull() {
+			return true
+		} else if self.IsNull() || self.IsNull() {
+			return false
+		}
+		return self.car.Equals(cons.car) && self.cdr.Equals(cons.cdr)
+	} else {
+		return false
+	}
+}
+
 type Identifier struct {
 	name []rune
 }
@@ -69,6 +83,10 @@ func (self *Identifier) String() string {
 
 func (self *Identifier) Pretty() string {
 	return self.String()
+}
+
+func (self *Identifier) Equals(expr Expression) bool {
+	panic("cannot compare Identifier")
 }
 
 type Integer struct {
@@ -83,6 +101,14 @@ func (self *Integer) Pretty() string {
 	return self.String()
 }
 
+func (self *Integer) Equals(expr Expression) bool {
+	if i, ok := expr.(*Integer); ok {
+		return self.value == i.value
+	} else {
+		return false
+	}
+}
+
 type Char struct {
 	value rune
 }
@@ -95,6 +121,14 @@ func (self *Char) Pretty() string {
 	return self.String()
 }
 
+func (self *Char) Equals(expr Expression) bool {
+	if char, ok := expr.(*Char); ok {
+		return self.value == char.value
+	} else {
+		return false
+	}
+}
+
 type T struct{}
 
 func (self *T) String() string {
@@ -103,4 +137,9 @@ func (self *T) String() string {
 
 func (self *T) Pretty() string {
 	return self.String()
+}
+
+func (self *T) Equals(expr Expression) bool {
+	_, ok := expr.(*T)
+	return ok
 }

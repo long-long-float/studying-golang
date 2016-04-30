@@ -38,6 +38,13 @@ func evalExpression(iexpr Expression) (Expression, error) {
 					return &Cons{}, nil
 				}
 
+			case "eq":
+				if tail.car.Equals(tail.cdr.car) {
+					return True, nil
+				} else {
+					return &Cons{}, nil
+				}
+
 			case "car":
 				arg, _ := evalExpression(tail.car)
 				switch arg := arg.(type) {
