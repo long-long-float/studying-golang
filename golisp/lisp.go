@@ -1,6 +1,7 @@
 package main
 
 import (
+	"./lisp"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -19,5 +20,7 @@ func main() {
 
 	src := []rune(string(dat))
 
-	fmt.Println(string(src))
+	exprs, _ := lisp.Parse(src)
+
+	fmt.Println(exprs)
 }
