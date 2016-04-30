@@ -116,7 +116,15 @@ func parseList(state *state) (Expression, error) {
 
 func parseIdentifier(state *state) (Expression, error) {
 	reg := regexp.MustCompile(`[a-zA-Z]`)
-	return &Identifier{parseWhile(state, reg)}, nil
+	name := parseWhile(state, reg)
+	switch string(name) {
+	case "t":
+		return True, nil
+	case "nil":
+		return &Cons{}, nil
+	default:
+		return &Identifier{name}, nil
+	}
 }
 
 func parseInteger(state *state) (Expression, error) {
