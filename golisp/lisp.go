@@ -26,4 +26,8 @@ func main() {
 	}
 
 	fmt.Println(exprs)
+
+	if err := lisp.Evaluate(exprs); err != nil {
+		log.Fatal(err)
+	}
 }
