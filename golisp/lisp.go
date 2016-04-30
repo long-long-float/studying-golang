@@ -25,7 +25,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(exprs)
+	for _, expr := range exprs {
+		fmt.Println(expr.Pretty())
+	}
 
 	if err := lisp.Evaluate(exprs); err != nil {
 		log.Fatal(err)

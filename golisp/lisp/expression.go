@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+var True = &T{}
+
 type Expression interface {
 	String() string
 	Pretty() string
@@ -18,12 +20,15 @@ func (self *Cons) IsNull() bool {
 	return self.car == nil && self.cdr == nil
 }
 
-func (self *Cons) Each(f func(Expression)) {
+func (self *Cons) Each(f func(Expression) Expression) Expression {
 	current := self
 	for !current.IsNull() {
-		f(current.car)
+		if ret := f(current.car); ret != nil {
+			return ret
+		}
 		current = current.cdr
 	}
+	return nil
 }
 
 func (self *Cons) String() string {
@@ -38,14 +43,16 @@ func (self *Cons) Pretty() string {
 	switch self.car.(type) {
 	case *Char:
 		str := ""
-		self.Each(func(expr Expression) {
+		self.Each(func(expr Expression) Expression {
 			str += expr.Pretty()
+			return nil
 		})
 		return str
 	default:
 		str := "("
-		self.Each(func(expr Expression) {
+		self.Each(func(expr Expression) Expression {
 			str += expr.Pretty() + " "
+			return nil
 		})
 		str += ")"
 		return str
@@ -85,5 +92,15 @@ func (self *Char) String() string {
 }
 
 func (self *Char) Pretty() string {
+	return self.String()
+}
+
+type T struct{}
+
+func (self *T) String() string {
+	return "T"
+}
+
+func (self *T) Pretty() string {
 	return self.String()
 }
