@@ -100,7 +100,7 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 					return &Cons{}, nil
 				}
 			case "quote":
-				return expr, nil
+				return tail, nil
 			case "lambda":
 				args, ok := tail.car.(*Cons)
 				if !ok {

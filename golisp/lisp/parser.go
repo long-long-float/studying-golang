@@ -151,8 +151,8 @@ func parseString(state *state) (Expression, error) {
 	}
 	state.consume()
 
-	head := &Cons{&Identifier{[]rune("quote")}, nil}
-	current := head
+	head := &Cons{&Identifier{[]rune("quote")}, &Cons{}}
+	current := head.cdr
 	for _, cur := range value {
 		current.car = &Char{rune(cur)}
 		current.cdr = &Cons{}
