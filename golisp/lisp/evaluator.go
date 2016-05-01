@@ -36,7 +36,10 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 				return &Cons{}, nil
 
 			case "atom":
-				v, _ := evalExpression(tail.car, current)
+				v, err := evalExpression(tail.car, current)
+				if err != nil {
+					return nil, err
+				}
 				if isAtom(v) {
 					return True, nil
 				} else {
@@ -59,7 +62,10 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 				}
 
 			case "car":
-				arg, _ := evalExpression(tail.car, current)
+				arg, err := evalExpression(tail.car, current)
+				if err != nil {
+					return nil, err
+				}
 				switch arg := arg.(type) {
 				case *Cons:
 					return arg.car, nil
@@ -68,7 +74,10 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 				}
 
 			case "cdr":
-				arg, _ := evalExpression(tail.car, current)
+				arg, err := evalExpression(tail.car, current)
+				if err != nil {
+					return nil, err
+				}
 				switch arg := arg.(type) {
 				case *Cons:
 					return arg.cdr, nil
@@ -114,7 +123,12 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 				}
 				val := tail.cdr.car
 
-				current.vtable[string(id.name)], _ = evalExpression(val, current)
+				var err error
+				current.vtable[string(id.name)], err = evalExpression(val, current)
+
+				if err != nil {
+					return nil, err
+				}
 
 				return val, nil
 
@@ -129,7 +143,7 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 	case *Identifier:
 		val := current.find(string(expr.name))
 		if val == nil {
-			return nil, fmt.Errorf("undefined variable %s", string(expr.name))
+			return nil, fmt.Errorf("undefined variable or function %s", string(expr.name))
 		}
 		return val, nil
 	default:
@@ -148,7 +162,10 @@ func isAtom(expr Expression) bool {
 }
 
 func applyLambda(expr *Cons, current *Environment) (Expression, error) {
-	car, _ := evalExpression(expr.car, current)
+	car, err := evalExpression(expr.car, current)
+	if err != nil {
+		return nil, err
+	}
 	switch head := car.(type) {
 	case *Lambda:
 		lambda := head
