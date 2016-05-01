@@ -98,7 +98,11 @@ func parseList(state *state) (Expression, error) {
 	head := &Cons{}
 	current := head
 	for state.current() != ')' && !state.isEOF() {
-		current.car, _ = parseExpression(state)
+		var err error
+		current.car, err = parseExpression(state)
+		if err != nil {
+			return nil, err
+		}
 		current.cdr = &Cons{}
 
 		current = current.cdr
