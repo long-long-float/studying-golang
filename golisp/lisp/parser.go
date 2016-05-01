@@ -119,8 +119,9 @@ func parseList(state *state) (Expression, error) {
 }
 
 func parseIdentifier(state *state) (Expression, error) {
-	reg := regexp.MustCompile(`[a-zA-Z]`)
-	name := parseWhile(state, reg)
+	firstReg := regexp.MustCompile(`[a-zA-Z]`)
+	reg := regexp.MustCompile(`[a-zA-Z0-9\-/]`)
+	name := parseWhile(state, firstReg, reg)
 	switch string(name) {
 	case "t":
 		return True, nil
@@ -132,8 +133,9 @@ func parseIdentifier(state *state) (Expression, error) {
 }
 
 func parseInteger(state *state) (Expression, error) {
+	firstReg := regexp.MustCompile(`[0-9\-]`)
 	reg := regexp.MustCompile(`[0-9]`)
-	value, _ := strconv.Atoi(string(parseWhile(state, reg)))
+	value, _ := strconv.Atoi(string(parseWhile(state, firstReg, reg)))
 	return &Integer{value}, nil
 }
 
@@ -144,7 +146,7 @@ func parseString(state *state) (Expression, error) {
 	state.consume()
 
 	reg := regexp.MustCompile(`[^"]`)
-	value := parseWhile(state, reg)
+	value := parseWhile(state, reg, reg)
 
 	if err := state.expect('"'); err != nil {
 		return nil, err
@@ -163,8 +165,11 @@ func parseString(state *state) (Expression, error) {
 	return head, nil
 }
 
-func parseWhile(state *state, reg *regexp.Regexp) []rune {
+func parseWhile(state *state, firstReg, reg *regexp.Regexp) []rune {
 	value := []rune{}
+	if firstReg.MatchString(string(state.current())) {
+		value = append(value, state.consume())
+	}
 	for reg.MatchString(string(state.current())) {
 		value = append(value, state.consume())
 	}
