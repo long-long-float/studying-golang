@@ -158,7 +158,7 @@ func (self *Lambda) String() string {
 }
 
 func (self *Lambda) Pretty() string {
-	return "<lambda> " + self.String()
+	return "<lambda: " + self.String() + ">"
 }
 
 func (self *Lambda) Equals(expr Expression) bool {
@@ -167,4 +167,22 @@ func (self *Lambda) Equals(expr Expression) bool {
 		return self.self.Equals(lambda.self)
 	}
 	return false
+}
+
+type Thread struct {
+	lambda *Lambda
+
+	finishCh chan Expression
+}
+
+func (self *Thread) String() string {
+	return "<thread: " + self.lambda.String() + ">"
+}
+
+func (self *Thread) Pretty() string {
+	return self.String()
+}
+
+func (self *Thread) Equals(expr Expression) bool {
+	return self == expr
 }

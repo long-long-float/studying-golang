@@ -88,6 +88,40 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 			case "cons":
 				return evalExpression(tail, current)
 
+			case "thread/run":
+				arg, err := evalExpression(tail.car, current)
+				if err != nil {
+					return nil, err
+				}
+				lambda, ok := arg.(*Lambda)
+				if !ok {
+					return nil, fmt.Errorf("arguments of thread/run must be Lambda")
+				}
+
+				finishCh := make(chan Expression)
+
+				go func() {
+					// TODO: エラー処理をする
+					result, _ := applyLambda(&Cons{lambda, tail.cdr}, current)
+					finishCh <- result
+				}()
+
+				return &Thread{lambda, finishCh}, nil
+
+			case "thread/wait":
+				arg, err := evalExpression(tail.car, current)
+				if err != nil {
+					return nil, err
+				}
+				thread, ok := arg.(*Thread)
+				if !ok {
+					return nil, fmt.Errorf("arguments of thread/wait must be Thread")
+				}
+
+				result := <-thread.finishCh
+
+				return result, nil
+
 			// special forms
 			case "cond":
 				result := tail.Each(func(cond Expression) Expression {
