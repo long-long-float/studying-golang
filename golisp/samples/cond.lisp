@@ -1,3 +1,3 @@
 (cond
- ((atom 1) (print "OK"))
- (print "NG"))
+ ((atom (quote 1 2 3)) (print "OK"))
+ (t (print "NG")))
