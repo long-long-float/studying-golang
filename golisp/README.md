@@ -46,5 +46,6 @@ $ ./golisp FILE
 
 * `thread/run`
   * starts running thread, and returns thread object
+  * Program doesn't stopping even if an error happens at thread, so you can use `thread/wait` to receive an error.
 * `thread/wait`
-  * waits for thread object of argument
+  * waits for thread object, and returns result of thread or an error.

@@ -98,15 +98,14 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 					return nil, fmt.Errorf("arguments of thread/run must be Lambda")
 				}
 
-				finishCh := make(chan Expression)
+				thread := NewThread(lambda)
 
 				go func() {
-					// TODO: エラー処理をする
-					result, _ := applyLambda(&Cons{lambda, tail.cdr}, current)
-					finishCh <- result
+					result, err := applyLambda(&Cons{lambda, tail.cdr}, current)
+					thread.NotifyFinishing(result, err)
 				}()
 
-				return &Thread{lambda, finishCh}, nil
+				return thread, nil
 
 			case "thread/wait":
 				arg, err := evalExpression(tail.car, current)
@@ -120,7 +119,11 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 
 				result := <-thread.finishCh
 
-				return result, nil
+				if result.err != nil {
+					return nil, result.err
+				} else {
+					return result.expr, nil
+				}
 
 			// special forms
 			case "cond":

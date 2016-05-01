@@ -169,10 +169,23 @@ func (self *Lambda) Equals(expr Expression) bool {
 	return false
 }
 
+type exprWithErr struct {
+	expr Expression
+	err  error
+}
+
 type Thread struct {
 	lambda *Lambda
 
-	finishCh chan Expression
+	finishCh chan exprWithErr
+}
+
+func NewThread(lambda *Lambda) *Thread {
+	return &Thread{lambda, make(chan exprWithErr)}
+}
+
+func (self *Thread) NotifyFinishing(expr Expression, err error) {
+	self.finishCh <- exprWithErr{expr, err}
 }
 
 func (self *Thread) String() string {
