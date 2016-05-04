@@ -21,15 +21,15 @@ func (self *Cons) IsNull() bool {
 	return self.car == nil && self.cdr == nil
 }
 
-func (self *Cons) Each(f func(Expression) Expression) Expression {
+func (self *Cons) Each(f func(Expression) (Expression, error)) (Expression, error) {
 	current := self
 	for !current.IsNull() {
-		if ret := f(current.car); ret != nil {
-			return ret
+		if ret, err := f(current.car); ret != nil || err != nil {
+			return ret, err
 		}
 		current = current.cdr
 	}
-	return nil
+	return nil, nil
 }
 
 func (self *Cons) String() string {
@@ -44,16 +44,16 @@ func (self *Cons) Pretty() string {
 	switch self.car.(type) {
 	case *Char:
 		str := ""
-		self.Each(func(expr Expression) Expression {
+		self.Each(func(expr Expression) (Expression, error) {
 			str += expr.Pretty()
-			return nil
+			return nil, nil
 		})
 		return str
 	default:
 		str := "("
-		self.Each(func(expr Expression) Expression {
+		self.Each(func(expr Expression) (Expression, error) {
 			str += expr.Pretty() + " "
-			return nil
+			return nil, nil
 		})
 		str += ")"
 		return str

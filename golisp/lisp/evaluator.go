@@ -27,11 +27,18 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 			switch string(head.name) {
 			// functions
 			case "print":
-				tail.Each(func(arg Expression) Expression {
-					v, _ := evalExpression(arg, current)
+				_, err := tail.Each(func(arg Expression) (Expression, error) {
+					v, err := evalExpression(arg, current)
+					if err != nil {
+						return nil, err
+					}
 					fmt.Println(v.Pretty())
-					return nil
+					return nil, nil
 				})
+
+				if err != nil {
+					return nil, err
+				}
 
 				return &Cons{}, nil
 
@@ -127,18 +134,26 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 
 			// special forms
 			case "cond":
-				result := tail.Each(func(cond Expression) Expression {
+				result, err := tail.Each(func(cond Expression) (Expression, error) {
 					switch pair := cond.(type) {
 					case *Cons:
 						f, s := pair.car, pair.cdr.car
-						v, _ := evalExpression(f, current)
-						if v == True {
-							return s
+						v, err := evalExpression(f, current)
+						if err != nil {
+							return nil, err
 						}
-						return nil
+						if v == True {
+							return s, nil
+						}
+						return nil, nil
 					}
-					return nil
+					// TODO: Consではなかった時にエラーを返す
+					return nil, nil
 				})
+
+				if err != nil {
+					return nil, err
+				}
 
 				if result != nil {
 					return evalExpression(result, current)
@@ -212,30 +227,40 @@ func applyLambda(expr *Cons, current *Environment) (Expression, error) {
 		// TODO: lambda.argsとargsの長さの比較をする
 
 		argsCurrent := args
-		lambda.args.Each(func(expr Expression) Expression {
-			// TODO: Identifierではなかった時のエラー処理
+		_, err := lambda.args.Each(func(expr Expression) (Expression, error) {
 			id, ok := expr.(*Identifier)
 			if !ok {
-				return nil
+				return nil, fmt.Errorf("arguments of lambda must be Identifier")
 			}
 
 			vtable[string(id.name)], _ = evalExpression(argsCurrent.car, current)
 			argsCurrent = argsCurrent.cdr
 
-			return nil
+			return nil, nil
 		})
+
+		if err != nil {
+			return nil, err
+		}
 
 		env := &Environment{current, vtable}
 
 		env.parent = current
 
 		var retVal Expression = &Cons{}
-		lambda.body.Each(func(expr Expression) Expression {
-			// TODO: エラー処理
-			retVal, _ = evalExpression(expr, env)
-			return nil
+		_, err = lambda.body.Each(func(expr Expression) (Expression, error) {
+			var err error
+			retVal, err = evalExpression(expr, env)
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, nil
 		})
 
+		if err != nil {
+			return nil, err
+		}
 		return retVal, nil
 
 	default:
