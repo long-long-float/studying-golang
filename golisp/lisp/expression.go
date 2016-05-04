@@ -114,7 +114,7 @@ type Char struct {
 }
 
 func (self *Char) String() string {
-	return string(self.value)
+	return "'" + string(self.value) + "'"
 }
 
 func (self *Char) Pretty() string {

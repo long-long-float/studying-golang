@@ -78,6 +78,8 @@ func parseExpression(state *state) (Expression, error) {
 		return parseIdentifier(state)
 	case (cur == '-') || ('0' <= cur && cur <= '9'):
 		return parseInteger(state)
+	case cur == '\'':
+		return parseChar(state)
 	case cur == '"':
 		return parseString(state)
 	case cur == '(':
@@ -137,6 +139,26 @@ func parseInteger(state *state) (Expression, error) {
 	reg := regexp.MustCompile(`[0-9]`)
 	value, _ := strconv.Atoi(string(parseWhile(state, firstReg, reg)))
 	return &Integer{value}, nil
+}
+
+func parseChar(state *state) (Expression, error) {
+	if err := state.expect('\''); err != nil {
+		return nil, err
+	}
+	state.consume()
+
+	reg := regexp.MustCompile(`[^']`)
+	if !reg.MatchString(string(state.current())) {
+		return nil, fmt.Errorf("unexpected ' at %d", state.position)
+	}
+	value := state.consume()
+
+	if err := state.expect('\''); err != nil {
+		return nil, err
+	}
+	state.consume()
+
+	return &Char{value}, nil
 }
 
 func parseString(state *state) (Expression, error) {
