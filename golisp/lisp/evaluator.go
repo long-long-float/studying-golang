@@ -5,7 +5,7 @@ import (
 )
 
 func Evaluate(exprs []Expression) error {
-	rootEnv := &Environment{nil, VariableTable{}}
+	rootEnv := &Environment{nil, VariableTable{}, nil}
 	for _, expr := range exprs {
 		if _, err := evalExpression(expr, rootEnv); err != nil {
 			return err
@@ -243,7 +243,7 @@ func applyLambda(expr *Cons, current *Environment) (Expression, error) {
 			return nil, err
 		}
 
-		env := &Environment{current, vtable}
+		env := &Environment{current, vtable, lambda}
 
 		env.parent = current
 
