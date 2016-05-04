@@ -19,6 +19,7 @@ $ ./golisp FILE
 * functions
   * `atom`, `eq`, `car`, `cdr`, `cons`
   * `print`
+  * `+`, `-`, `*`, `/`, `%` (available for only integer)
 * special forms
   * `cond`, `quote`, `lambda`, `define`
 * values
