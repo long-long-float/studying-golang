@@ -6,6 +6,8 @@ import (
 	"strconv"
 )
 
+var FIRST_REG_IDENTIFIER = regexp.MustCompile(`[a-zA-Z\+\-*/%]`)
+
 type state struct {
 	src      []rune
 	position int
@@ -74,7 +76,7 @@ func Parse(src []rune) ([]Expression, error) {
 func parseExpression(state *state) (Expression, error) {
 	cur := state.current()
 	switch {
-	case ('a' <= cur && cur <= 'z') || ('A' <= cur && cur <= 'Z'):
+	case FIRST_REG_IDENTIFIER.MatchString(string(cur)):
 		return parseIdentifier(state)
 	case (cur == '-') || ('0' <= cur && cur <= '9'):
 		return parseInteger(state)
@@ -121,8 +123,8 @@ func parseList(state *state) (Expression, error) {
 }
 
 func parseIdentifier(state *state) (Expression, error) {
-	firstReg := regexp.MustCompile(`[a-zA-Z]`)
-	reg := regexp.MustCompile(`[a-zA-Z0-9\-/]`)
+	firstReg := FIRST_REG_IDENTIFIER
+	reg := regexp.MustCompile(`[a-zA-Z0-9+\-*/%]`)
 	name := parseWhile(state, firstReg, reg)
 	switch string(name) {
 	case "t":

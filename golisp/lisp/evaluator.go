@@ -95,6 +95,48 @@ func evalExpression(iexpr Expression, current *Environment) (Expression, error) 
 			case "cons":
 				return evalExpression(tail, current)
 
+			case "+":
+				fallthrough
+			case "-":
+				fallthrough
+			case "*":
+				fallthrough
+			case "/":
+				fallthrough
+			case "%":
+				op := string(head.name)
+
+				arg1, err := evalExpression(tail.car, current)
+				if err != nil {
+					return nil, err
+				}
+				arg2, err := evalExpression(tail.cdr.car, current)
+				if err != nil {
+					return nil, err
+				}
+
+				left, ok1 := arg1.(*Integer)
+				right, ok2 := arg2.(*Integer)
+
+				if !(ok1 && ok2) {
+					return nil, fmt.Errorf("arguments of %s must be Integer", op)
+				}
+
+				var result int
+				switch op {
+				case "+":
+					result = left.value + right.value
+				case "-":
+					result = left.value - right.value
+				case "*":
+					result = left.value * right.value
+				case "/":
+					result = left.value / right.value
+				case "%":
+					result = left.value % right.value
+				}
+
+				return &Integer{result}, nil
 			case "thread/run":
 				arg, err := evalExpression(tail.car, current)
 				if err != nil {
