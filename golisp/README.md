@@ -1,6 +1,6 @@
 # Lisp.go
 
-An pure lisp intepreter implemented by Go.
+A pure lisp intepreter implemented by Go.
 
 ## Build
 
